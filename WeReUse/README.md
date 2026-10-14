@@ -1,8 +1,5 @@
 # WeReUse - Registration, Login, Authentication & Verification module
 
-MERN stack (MongoDB, Express, React, Node.js). This module lets a student register with a university ID
-card, log in securely, and be approved by an admin before the rest of the platform (listings, chat) unlocks.
-Admins are a separate account type with their own database collection and a golden **Admin** badge.
 
 ![logo](client/public/logo.png)
 
@@ -29,7 +26,4 @@ Admins are a separate account type with their own database collection and a gold
 | Private ID storage | Files are stored outside any public folder and served only to the owner and admins | NFR4, NFR5 |
 | Retention | The old ID image is deleted when a new one replaces it; a failed sign-up leaves no file behind | NFR13 |
 | Audit trail | Every approve/reject is stored in `adminactionlogs` with the admin id, time and reason. **One admin has many log entries** (`adminId` refers to `admins`). Creating and promoting admins is logged too (`create_admin`, `promote_to_admin`) | auditability |
-
-Not in this module (separate work): email-link verification and "forgot password", listings, chat, payments.
-
 ---
