@@ -8,6 +8,7 @@ const PendingRegistration = require('./models/PendingRegistration');
 const { backfillRegKeys } = require('./utils/backfillRegKeys');
 const { purgeExpiredPendingRegistrations } = require('./utils/pendingRegistrations');
 const Notification = require('./models/Notification');
+const Category = require('./models/Category');
 const AdminActionLog = require('./models/AdminActionLog');
 
 async function start() {
@@ -24,8 +25,7 @@ async function start() {
     console.warn('');
   }
 
-  await initIndexes([User, Admin, PendingRegistration, Notification, AdminActionLog]);
-
+  await initIndexes([User, Admin, PendingRegistration, Category, Notification, AdminActionLog]);
   if (!SMTP_HOST) {
     console.warn('E-mail: SMTP is not configured, so verification codes are PRINTED in this terminal instead of being e-mailed.');
     console.warn('        To send real e-mails, set SMTP_HOST / SMTP_USER / SMTP_PASS in server/.env (see README).\n');

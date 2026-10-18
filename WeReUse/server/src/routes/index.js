@@ -6,6 +6,7 @@ router.get('/health', (req, res) => {
 });
 
 router.use('/auth', require('./authRoutes'));
+router.use('/categories', require('./categoryRoutes'));
 router.use('/verification', require('./verificationRoutes'));
 router.use('/profile', require('./profileRoutes'));
 router.use('/admin', require('./adminRoutes'));

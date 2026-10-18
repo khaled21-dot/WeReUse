@@ -8,6 +8,12 @@ const {
   promoteStudent,
   getAdminIdCard,
 } = require('../controllers/adminController');
+const {
+  listCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} = require('../controllers/categoryController');
 const { protect, requireRole } = require('../middleware/auth');
 const { uploadIdCard } = require('../middleware/upload');
 const sanitize = require('../middleware/sanitize');
@@ -22,5 +28,11 @@ router.patch('/verifications/:id/reject', reject);
 router.post('/students/:id/promote', promoteStudent); // any admin may make any (active) student an admin
 router.post('/admins', uploadIdCard, sanitize, createAdmin); // upload runs only AFTER the admin check
 router.get('/id-card/:adminId', getAdminIdCard);
+
+// Category management (CRUD)
+router.get('/categories', listCategories);
+router.post('/categories', createCategory);
+router.patch('/categories/:id', updateCategory);
+router.delete('/categories/:id', deleteCategory);
 
 module.exports = router;

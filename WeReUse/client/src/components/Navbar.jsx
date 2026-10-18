@@ -45,9 +45,19 @@ export default function Navbar() {
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
           {user ? (
             <>
-              <NavLink to={homeFor(user)} className={linkClass}>
+              <NavLink to={homeFor(user)} end className={linkClass}>
                 {homeLabel}
               </NavLink>
+              {isAdmin && (
+                <NavLink to="/admin/categories" className={linkClass}>
+                  Categories
+                </NavLink>
+              )}
+              {!isAdmin && (
+                <NavLink to="/categories" className={linkClass}>
+                  Categories
+                </NavLink>
+              )}
               {canEditProfile && (
                 <NavLink to="/profile" className={linkClass}>
                   My profile
@@ -106,9 +116,19 @@ export default function Navbar() {
                   Signed in as {user.name}
                   {isAdmin && <AdminBadge badge={user.adminBadge} size="sm" />}
                 </p>
-                <NavLink to={homeFor(user)} className={linkClass}>
+                <NavLink to={homeFor(user)} end className={linkClass}>
                   {homeLabel}
                 </NavLink>
+                {isAdmin && (
+                  <NavLink to="/admin/categories" className={linkClass}>
+                    Categories
+                  </NavLink>
+                )}
+                {!isAdmin && (
+                  <NavLink to="/categories" className={linkClass}>
+                    Categories
+                  </NavLink>
+                )}
                 {canEditProfile && (
                   <NavLink to="/profile" className={linkClass}>
                     My profile

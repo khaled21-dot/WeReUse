@@ -107,6 +107,21 @@ const requestEmailChangeSchema = z.object({
   password: z.string(text('Password')).min(1, 'Password is required').max(200),
 });
 const confirmEmailChangeSchema = z.object({ code: sixDigitCode });
+// ---- categories (admin) ----
+const categoryName = z
+  .string(text('Category name'))
+  .trim()
+  .min(2, 'Category name must be at least 2 characters')
+  .max(50, 'Category name is too long (50 characters maximum)')
+  .regex(/^[\p{L}\p{N}][\p{L}\p{N}\s&,.'()/+-]*$/u, "Use letters, numbers, spaces and & , . ' ( ) / + - only");
+const isActive = z.boolean({ invalid_type_error: 'isActive must be true or false' });
+
+const createCategorySchema = z.object({ name: categoryName, isActive: isActive.optional() });
+const updateCategorySchema = z.object({ name: categoryName.optional(), isActive: isActive.optional() });
+const listCategoriesSchema = z.object({
+  status: z.enum(['all', 'active', 'disabled']).default('all'),
+  search: z.string().trim().max(50).default(''),
+});
 
 const loginSchema = z.object({
   email: z.string(text('Email')).trim().toLowerCase().min(1, 'Email is required').max(254),
@@ -158,6 +173,9 @@ module.exports = {
   changePasswordSchema,
   requestEmailChangeSchema,
   confirmEmailChangeSchema,
+  createCategorySchema,
+  updateCategorySchema,
+  listCategoriesSchema,
   loginSchema,
   resubmitSchema,
   rejectSchema,

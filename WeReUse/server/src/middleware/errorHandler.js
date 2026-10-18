@@ -7,6 +7,7 @@ const DUPLICATE_MESSAGES = {
   regKey: 'This university registration number is already registered.',
   phone: 'This phone number is already registered.',
   _id: 'This student has already been made an admin.',
+  nameKey: 'A category with this name already exists.',
 };
 
 const notFound = (req, res, next) => {

@@ -38,3 +38,11 @@ export const profileApi = {
   resendEmailChange: () => api.post('/profile/email/resend'),
   cancelEmailChange: () => api.delete('/profile/email'),
 };
+
+export const categoryApi = {
+  list: (params) => api.get('/admin/categories', { params }), // READ   (admin: all categories)
+  create: (body) => api.post('/admin/categories', body), //       CREATE
+  update: (id, body) => api.patch(`/admin/categories/${id}`, body), // UPDATE (rename / enable / disable)
+  remove: (id) => api.delete(`/admin/categories/${id}`), //        DELETE
+  listActive: () => api.get('/categories'), // any logged-in student: ACTIVE categories only
+};

@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AdminVerifications from './pages/AdminVerifications';
+import AdminCategories from './pages/AdminCategories';
+import Categories from './pages/Categories';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 
@@ -56,6 +58,14 @@ export default function App() {
           }
         />
         <Route
+          path="/categories"
+          element={
+            <ProtectedRoute roles={['student']}>
+              <Categories />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <ProtectedRoute roles={['student', 'admin']}>
@@ -68,6 +78,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['admin']}>
               <AdminVerifications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/categories"
+          element={
+            <ProtectedRoute roles={['admin']}>
+              <AdminCategories />
             </ProtectedRoute>
           }
         />
