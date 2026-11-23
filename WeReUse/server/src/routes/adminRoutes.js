@@ -14,6 +14,8 @@ const {
   updateCategory,
   deleteCategory,
 } = require('../controllers/categoryController');
+const { adminListComplaints, adminUpdateComplaint } = require('../controllers/complaintController');
+const { adminListReports, adminUpdateReport, adminModerateUser } = require('../controllers/userController');
 const { protect, requireRole } = require('../middleware/auth');
 const { uploadIdCard } = require('../middleware/upload');
 const sanitize = require('../middleware/sanitize');
@@ -34,5 +36,14 @@ router.get('/categories', listCategories);
 router.post('/categories', createCategory);
 router.patch('/categories/:id', updateCategory);
 router.delete('/categories/:id', deleteCategory);
+
+// Complaint box
+router.get('/complaints', adminListComplaints);
+router.patch('/complaints/:id', adminUpdateComplaint);
+
+// Report box (students reporting students) and blocking / removing accounts
+router.get('/reports', adminListReports);
+router.patch('/reports/:id', adminUpdateReport);
+router.post('/users/:id/moderate', adminModerateUser);
 
 module.exports = router;

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Lock, Mail } from 'lucide-react';
+import { Camera, Loader2, Lock, Mail, Trash2 } from 'lucide-react';
 import Alert from '../components/Alert';
 import AdminBadge from '../components/AdminBadge';
+import Avatar from '../components/chat/Avatar';
 import EmailCodeForm from '../components/EmailCodeForm';
 import PasswordField from '../components/PasswordField';
 import PasswordStrength from '../components/PasswordStrength';
@@ -30,8 +31,11 @@ export default function Profile() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
         <h1 className="text-3xl font-bold">Your profile</h1>
-        <Alert variant="info" title="Profile editing unlocks after verification" className="mt-6">
-          An admin has to approve your ID card first. You can check the progress on your dashboard.
+        <div className="mt-6">
+          <PhotoCard user={user} />
+        </div>
+        <Alert variant="info" title="Editing your other details unlocks after verification" className="mt-6">
+          Your ID card has to be approved first. You can check the progress on your dashboard.
         </Alert>
         <Link to="/dashboard" className="btn btn-primary mt-6">
           Go to my dashboard
@@ -52,6 +56,7 @@ export default function Profile() {
 
       <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-6">
+          <PhotoCard user={user} />
           <DetailsForm user={user} />
           <EmailSection user={user} />
           <PasswordForm />
@@ -70,6 +75,134 @@ function Card({ title, id, children }) {
       </h2>
       <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+const PHOTO_MAX_MB = 5;
+const PHOTO_SIZE = 512; // the photo is cropped to a square of this many pixels before uploading
+
+/**
+ * Crops the chosen image to a centred square and shrinks it, so every avatar is small and looks the same
+ * everywhere. Browsers apply the phone's EXIF rotation when drawing, so sideways photos come out upright.
+ * Falls back to the original file if the browser cannot do it.
+ */
+async function squarePhoto(file) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const side = Math.min(bitmap.width, bitmap.height);
+    const out = Math.min(PHOTO_SIZE, side);
+    const canvas = document.createElement('canvas');
+    canvas.width = out;
+    canvas.height = out;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, out, out);
+    bitmap.close?.();
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+    return blob ? new File([blob], 'avatar.jpg', { type: 'image/jpeg' }) : file;
+  } catch {
+    return file;
+  }
+}
+
+/** Profile photo: upload, change or remove it. It is the avatar shown in the navbar, chats and listings. */
+function PhotoCard({ user }) {
+  const { setUser } = useAuth();
+  const toast = useToast();
+  const inputRef = useRef(null);
+  const [preview, setPreview] = useState(null); // blob: URL while uploading
+  const [busy, setBusy] = useState(''); // '' | 'upload' | 'remove'
+  const [error, setError] = useState('');
+
+  useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
+
+  const choose = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // choosing the same file again should work too
+    if (!file) return;
+    setError('');
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      setError('Choose a JPG or PNG image.');
+      return;
+    }
+    if (file.size > PHOTO_MAX_MB * 1024 * 1024) {
+      setError(`The photo must be smaller than ${PHOTO_MAX_MB} MB.`);
+      return;
+    }
+
+    setBusy('upload');
+    const ready = await squarePhoto(file);
+    setPreview(URL.createObjectURL(ready));
+    try {
+      const res = await profileApi.uploadAvatar(ready);
+      setUser(res.data.data.user);
+      toast.success('Your profile photo was updated.');
+    } catch (err) {
+      const parsed = parseApiError(err);
+      setError(parsed.fieldErrors.avatar || parsed.message);
+    } finally {
+      setPreview(null);
+      setBusy('');
+    }
+  };
+
+  const remove = async () => {
+    setError('');
+    setBusy('remove');
+    try {
+      const res = await profileApi.removeAvatar();
+      setUser(res.data.data.user);
+      toast.success('Your profile photo was removed.');
+    } catch (err) {
+      setError(parseApiError(err).message);
+    } finally {
+      setBusy('');
+    }
+  };
+
+  return (
+    <Card title="Profile photo" id="photo-title">
+      <div className="flex flex-wrap items-center gap-5">
+        <div className="relative">
+          <Avatar name={user.name} src={preview || user.avatar} size="xl" tone="dark" />
+          {busy === 'upload' && (
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-white/60">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-700" aria-hidden="true" />
+            </span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-ink-soft">
+            Your photo is shown next to your name in chats, on your listings and in the menu bar. JPG or PNG, up to {PHOTO_MAX_MB} MB.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <input
+              ref={inputRef}
+              id="avatar-input"
+              type="file"
+              accept="image/jpeg,image/png"
+              className="sr-only"
+              onChange={choose}
+              aria-label="Choose a profile photo"
+            />
+            <button type="button" onClick={() => inputRef.current?.click()} disabled={Boolean(busy)} className="btn btn-primary">
+              <Camera className="h-5 w-5" aria-hidden="true" />
+              {user.avatar ? 'Change photo' : 'Upload photo'}
+            </button>
+            {user.avatar && (
+              <button type="button" onClick={remove} disabled={Boolean(busy)} className="btn btn-secondary">
+                {busy === 'remove' ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-5 w-5" aria-hidden="true" />}
+                Remove
+              </button>
+            )}
+          </div>
+          {error && (
+            <p className="mt-2 text-sm font-semibold text-coral-800" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
 

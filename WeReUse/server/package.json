@@ -1,7 +1,7 @@
 {
   "name": "wereuse-server",
   "version": "1.0.0",
-  "description": "WeReUse - registration, authentication and student verification API",
+  "description": "WeReUse API - authentication, profiles, notifications, categories, chat, ratings and complaints",
   "main": "src/server.js",
   "private": true,
   "engines": {
@@ -11,7 +11,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
-    "test": "node --test tests/api.test.js",
+    "test": "node --test tests/api.test.js tests/listings.test.js tests/chat.test.js tests/complaints.test.js tests/moderation.test.js tests/AutoVerifyDecide.test.js tests/AutoVerifyFlow.test.js",
     "test:mail": "node src/scripts/testMail.js"
   },
   "dependencies": {
@@ -27,6 +27,8 @@
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
     "nodemailer": "^10.1.0",
+    "socket.io": "^4.8.4",
+    "tesseract.js": "^5.1.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {

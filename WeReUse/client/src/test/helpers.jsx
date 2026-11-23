@@ -3,17 +3,35 @@ import { MemoryRouter } from 'react-router-dom';
 import App from '../App';
 import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
+import { RealtimeContext } from '../context/RealtimeContext';
 
-export function renderApp(route = '/') {
+// `realtime` (optional) is a fake live connection: { connected, unread, subscribe, refreshUnread } - see fakeRealtime()
+export function renderApp(route = '/', { realtime } = {}) {
+  const app = <App />;
   return render(
     <MemoryRouter initialEntries={[route]}>
       <ToastProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <AuthProvider>{realtime ? <RealtimeContext.Provider value={realtime}>{app}</RealtimeContext.Provider> : app}</AuthProvider>
       </ToastProvider>
     </MemoryRouter>
   );
+}
+
+/** A stand-in for the Socket.IO connection: call push('message:new', payload) to simulate the server. */
+export function fakeRealtime(over = {}) {
+  const handlers = new Map();
+  return {
+    connected: true,
+    unread: 0,
+    refreshUnread: async () => {},
+    subscribe: (event, fn) => {
+      if (!handlers.has(event)) handlers.set(event, new Set());
+      handlers.get(event).add(fn);
+      return () => handlers.get(event).delete(fn);
+    },
+    push: (event, payload) => (handlers.get(event) || new Set()).forEach((fn) => fn(payload)),
+    ...over,
+  };
 }
 
 export const makeUser = (over = {}) => ({

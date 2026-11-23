@@ -62,6 +62,8 @@ const adminSchema = new Schema(
       attempts: { type: Number, default: 0 },
       sentAt: { type: Date, default: null },
     },
+    // Profile photo (file name in server/storage/avatars). Shown as the account's avatar; null = initials.
+    avatar: { type: String, default: null },
     emailVerifiedAt: { type: Date, default: null }, // null for accounts created before e-mail verification existed
     passwordChangedAt: { type: Date, default: null }, // logins issued before this moment stop working
   },

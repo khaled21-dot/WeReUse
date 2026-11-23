@@ -13,6 +13,30 @@ const int = (name, fallback) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const bool = (name, fallback = false) => {
+  const v = String(process.env[name] ?? '').trim().toLowerCase();
+  return v ? ['1', 'true', 'yes', 'on'].includes(v) : fallback;
+};
+const decimal = (name, fallback, min, max) => {
+  const n = parseFloat(process.env[name]);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+};
+const list = (name) =>
+  String(process.env[name] || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+// Optional: a regular expression the registration number (letters and digits only, e.g. 24135032) must match
+const regPattern = (() => {
+  const raw = String(process.env.UNIVERSITY_REG_PATTERN || '').trim();
+  if (!raw) return null;
+  try {
+    return new RegExp(raw);
+  } catch {
+    throw new Error('UNIVERSITY_REG_PATTERN in server/.env is not a valid regular expression.');
+  }
+})();
+
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.length < 16) {
   throw new Error(
@@ -52,6 +76,19 @@ module.exports = Object.freeze({
   EMAIL_CODE_TTL_MINUTES: int('EMAIL_CODE_TTL_MINUTES', 10),
   PENDING_REGISTRATION_TTL_MINUTES: int('PENDING_REGISTRATION_TTL_MINUTES', 60),
   MAX_UPLOAD_MB: int('MAX_UPLOAD_MB', 5),
+  // ---- Automatic ID-card verification (replaces the manual admin check) ----
+  AUTO_VERIFY: bool('AUTO_VERIFY', false),
+  // What to do when the card is not clearly right or wrong: "review" = an admin decides, "reject" = ask the student to try again
+  AUTO_VERIFY_ON_UNCERTAIN: String(process.env.AUTO_VERIFY_ON_UNCERTAIN || 'review').trim().toLowerCase() === 'reject' ? 'reject' : 'review',
+  AUTO_VERIFY_MIN_NAME_SCORE: decimal('AUTO_VERIFY_MIN_NAME_SCORE', 0.75, 0.3, 1),
+  // After this many automatic checks of the same student, an admin decides (stops people trying again and again)
+  AUTO_VERIFY_MAX_ATTEMPTS: Math.max(1, int('AUTO_VERIFY_MAX_ATTEMPTS', 3)),
+  AUTO_VERIFY_OCR_TIMEOUT_SECONDS: Math.max(10, int('AUTO_VERIFY_OCR_TIMEOUT_SECONDS', 90)),
+  UNIVERSITY_KEYWORDS: list('UNIVERSITY_KEYWORDS'), // words that identify the university on the card, e.g. daffodil
+  // true = the keyword must be read for an automatic approval (strict). Default false: OCR often cannot read
+  // the stylised logo, which used to send every correct card to an admin.
+  AUTO_VERIFY_REQUIRE_UNIVERSITY: bool('AUTO_VERIFY_REQUIRE_UNIVERSITY', false),
+  UNIVERSITY_REG_PATTERN: regPattern,
   // Private folder for ID card images. It is NOT served statically.
   STORAGE_DIR: process.env.STORAGE_DIR
     ? path.resolve(serverRoot, process.env.STORAGE_DIR)

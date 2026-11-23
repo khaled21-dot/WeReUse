@@ -1,6 +1,6 @@
 import { BadgeCheck, Clock, XCircle } from 'lucide-react';
 import { LogoMark } from './Logo';
-import { initials } from '../utils/format';
+import Avatar from './chat/Avatar';
 
 const STATUS = {
   verified: { label: 'Verified student', band: 'bg-green-600 text-white', icon: BadgeCheck },
@@ -28,12 +28,7 @@ export default function PassCard({ user }) {
           <span className="text-sm font-semibold text-ink-soft">Student pass</span>
         </div>
 
-        <div
-          className="mt-7 flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-800 font-display text-3xl font-bold text-white"
-          aria-hidden="true"
-        >
-          {initials(user.name)}
-        </div>
+        <Avatar name={user.name} src={user.avatar} tone="dark" className="mt-7 !h-20 !w-20 !rounded-2xl font-display !text-3xl" />
 
         <h2 className="mt-4 break-words font-display text-2xl font-bold leading-tight">{user.name}</h2>
         <p className="mt-1 text-sm text-ink-soft">{detail || 'University student'}</p>

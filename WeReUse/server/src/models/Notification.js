@@ -14,6 +14,8 @@ const notificationSchema = new Schema(
         'listing_rejected',
         'complaint_update',
         'verification_status',
+        'rating', //  someone rated this student on their profile
+        'report_update', // an admin handled a report this student sent
       ],
       required: true,
     },

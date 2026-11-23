@@ -10,7 +10,8 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { adminApi } from '../api';
 import { parseApiError } from '../api/client';
-import { formatDate, formatDateTime, initials } from '../utils/format';
+import { formatDate, formatDateTime } from '../utils/format';
+import Avatar from '../components/chat/Avatar';
 import { validatePhone } from '../utils/validators';
 
 const PAGE_SIZE = 10;
@@ -297,12 +298,7 @@ function AdminProfile({ admin }) {
       aria-label="Your admin profile"
       className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-4 rounded-xl border border-gold-300 bg-gold-50 p-4 sm:p-5"
     >
-      <span
-        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gold-400 font-display text-xl font-bold text-gold-900 ring-2 ring-gold-600"
-        aria-hidden="true"
-      >
-        {initials(admin.name)}
-      </span>
+      <Avatar name={admin.name} src={admin.avatar} size="lg" tone="gold" className="font-display !text-xl" />
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2.5">
@@ -483,10 +479,19 @@ function ReviewDrawer({ student, onClose, onChanged }) {
                       <AdminBadge badge={student.reviewedBy.adminBadge} size="sm" />
                     </span>
                   )}
+                  {!student.reviewedBy?.name && ['approved', 'rejected'].includes(student.autoVerification?.decision) && (
+                    <span className="mt-1 block font-normal text-ink-soft">by the automatic check</span>
+                  )}
                 </dd>
               </div>
             )}
           </dl>
+
+          {student.autoVerification?.summary && (
+            <Alert variant="info" title="Automatic check">
+              {student.autoVerification.summary}
+            </Alert>
+          )}
 
           {student.verificationStatus === 'rejected' && student.rejectionReason && (
             <Alert variant="error" title="Rejection reason">

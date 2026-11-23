@@ -8,6 +8,8 @@ const sendIdCard = require('../utils/sendIdCard');
 const { toRegKey } = require('../utils/regKey');
 const { regKeyInUse } = require('../utils/accountLookup');
 const { detectImageType } = require('../utils/imageType');
+const { AUTO_VERIFY } = require('../config/env');
+const { enqueue: enqueueAutoVerification } = require('../utils/autoVerify/service');
 
 const idCardError = (message) =>
   new AppError(message, 400, { code: 'VALIDATION_ERROR', errors: { idCard: message } });
@@ -54,6 +56,12 @@ exports.resubmit = asyncHandler(async (req, res) => {
     reviewedAt: null,
     reviewedBy: null,
   };
+  if (AUTO_VERIFY) {
+    // a new photo is checked again (the number of automatic tries so far is kept on purpose)
+    set['autoVerification.state'] = 'queued';
+    set['autoVerification.decision'] = null;
+    set['autoVerification.summary'] = '';
+  }
   if (universityRegNumber) {
     set.universityRegNumber = universityRegNumber;
     set.regKey = newRegKey;
@@ -79,9 +87,12 @@ exports.resubmit = asyncHandler(async (req, res) => {
 
   const user = await User.findById(req.user._id);
   await deleteIdCard(oldFile); // the previous ID image is no longer needed
+  enqueueAutoVerification(user._id); // does nothing unless AUTO_VERIFY is on
   res.json({
     success: true,
-    message: 'Thanks! Your new ID card is now waiting for admin review.',
+    message: AUTO_VERIFY
+      ? 'Thanks! We are checking your new ID card now - this usually takes about a minute.'
+      : 'Thanks! Your new ID card is now waiting for admin review.',
     data: { user },
   });
 });

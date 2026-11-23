@@ -4,9 +4,27 @@ import { LogOut, Menu, X } from 'lucide-react';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
 import AdminBadge from './AdminBadge';
+import Avatar from './chat/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { homeFor, initials } from '../utils/format';
+import { useRealtime } from '../context/RealtimeContext';
+import { homeFor } from '../utils/format';
+
+// The Messages link with a count of unread messages
+function MessagesLink({ className }) {
+  const { unread } = useRealtime();
+  return (
+    <NavLink to="/messages" className={className}>
+      Messages
+      {unread > 0 && (
+        <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-xs font-bold text-white">
+          <span aria-hidden="true">{unread > 9 ? '9+' : unread}</span>
+          <span className="sr-only">{unread} unread</span>
+        </span>
+      )}
+    </NavLink>
+  );
+}
 
 const linkClass = ({ isActive }) =>
   `rounded-lg px-3 py-2 text-[15px] font-semibold transition-colors ${
@@ -38,24 +56,48 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Logo size={38} />
 
         {/* desktop */}
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
+        <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Main">
           {user ? (
             <>
               <NavLink to={homeFor(user)} end className={linkClass}>
                 {homeLabel}
               </NavLink>
+              <NavLink to="/listings" end className={linkClass}>
+                Browse
+              </NavLink>
+              {!isAdmin && (
+                <NavLink to="/listings/mine" className={linkClass}>
+                  My listings
+                </NavLink>
+              )}
+              {!isAdmin && <MessagesLink className={linkClass} />}
               {isAdmin && (
                 <NavLink to="/admin/categories" className={linkClass}>
                   Categories
                 </NavLink>
               )}
+              {isAdmin && (
+                <NavLink to="/admin/complaints" className={linkClass}>
+                  Complaints
+                </NavLink>
+              )}
+              {isAdmin && (
+                <NavLink to="/admin/reports" className={linkClass}>
+                  Reports
+                </NavLink>
+              )}
               {!isAdmin && (
                 <NavLink to="/categories" className={linkClass}>
                   Categories
+                </NavLink>
+              )}
+              {!isAdmin && (
+                <NavLink to="/support" className={linkClass} title="Complaint box: report a scam or a problem">
+                  Help
                 </NavLink>
               )}
               {canEditProfile && (
@@ -65,15 +107,10 @@ export default function Navbar() {
               )}
               {/* only students get in-app notifications */}
               {!isAdmin && <NotificationBell refreshKey={user.verificationStatus} />}
-              <span
-                className={`ml-2 flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
-                  isAdmin ? 'bg-gold-400 text-gold-900 ring-2 ring-gold-600' : 'bg-blue-800 text-white'
-                }`}
-                title={user.name}
-                aria-hidden="true"
-              >
-                {initials(user.name)}
-              </span>
+              <NavLink to="/profile" className="ml-2 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500" title={`${user.name} - profile photo`}>
+                <span className="sr-only">Your profile</span>
+                <Avatar name={user.name} src={user.avatar} size="sm" tone={isAdmin ? 'gold' : 'dark'} className="!h-9 !w-9" />
+              </NavLink>
               {isAdmin && <AdminBadge badge={user.adminBadge} size="sm" className="ml-2" />}
               <button type="button" onClick={handleLogout} className="btn btn-ghost !px-3 !py-2">
                 <LogOut className="h-4 w-4" aria-hidden="true" />
@@ -93,7 +130,7 @@ export default function Navbar() {
         </nav>
 
         {/* mobile */}
-        <div className="flex items-center gap-1 md:hidden">
+        <div className="flex items-center gap-1 xl:hidden">
           {user && !isAdmin && <NotificationBell refreshKey={user.verificationStatus} />}
           <button
             type="button"
@@ -108,25 +145,50 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <nav className="border-t border-line bg-white px-4 py-3 md:hidden" aria-label="Mobile">
+        <nav className="border-t border-line bg-white px-4 py-3 xl:hidden" aria-label="Mobile">
           <div className="flex flex-col gap-1">
             {user ? (
               <>
                 <p className="flex flex-wrap items-center gap-2 px-3 py-1 text-sm text-ink-faint">
+                  <Avatar name={user.name} src={user.avatar} size="sm" tone={isAdmin ? 'gold' : 'dark'} />
                   Signed in as {user.name}
                   {isAdmin && <AdminBadge badge={user.adminBadge} size="sm" />}
                 </p>
                 <NavLink to={homeFor(user)} end className={linkClass}>
                   {homeLabel}
                 </NavLink>
+                <NavLink to="/listings" end className={linkClass}>
+                  Browse
+                </NavLink>
+                {!isAdmin && (
+                  <NavLink to="/listings/mine" className={linkClass}>
+                    My listings
+                  </NavLink>
+                )}
+                {!isAdmin && <MessagesLink className={linkClass} />}
                 {isAdmin && (
                   <NavLink to="/admin/categories" className={linkClass}>
                     Categories
                   </NavLink>
                 )}
+                {isAdmin && (
+                  <NavLink to="/admin/complaints" className={linkClass}>
+                    Complaints
+                  </NavLink>
+                )}
+                {isAdmin && (
+                  <NavLink to="/admin/reports" className={linkClass}>
+                    Reports
+                  </NavLink>
+                )}
                 {!isAdmin && (
                   <NavLink to="/categories" className={linkClass}>
                     Categories
+                  </NavLink>
+                )}
+                {!isAdmin && (
+                  <NavLink to="/support" className={linkClass}>
+                    Help &amp; complaints
                   </NavLink>
                 )}
                 {canEditProfile && (
