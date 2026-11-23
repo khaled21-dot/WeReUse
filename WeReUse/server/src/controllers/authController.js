@@ -12,6 +12,7 @@ const { toRegKey } = require('../utils/regKey');
 const { emailInUse, regKeyInUse } = require('../utils/accountLookup');
 const { purgeExpiredPendingRegistrations } = require('../utils/pendingRegistrations');
 const { sendVerificationEmail } = require('../utils/mailer');
+const { refreshSuspension, blockedProblem } = require('../utils/moderation');
 const {
   CODE_TTL_MINUTES,
   MAX_ATTEMPTS,
@@ -22,7 +23,8 @@ const {
   cooldownRemainingSeconds,
   maskEmail,
 } = require('../utils/emailCode');
-const { BCRYPT_ROUNDS, PENDING_REGISTRATION_TTL_MINUTES } = require('../config/env');
+const { BCRYPT_ROUNDS, PENDING_REGISTRATION_TTL_MINUTES, AUTO_VERIFY } = require('../config/env');
+const { enqueue: enqueueAutoVerification } = require('../utils/autoVerify/service');
 
 // Compared against when the email does not exist, so a login for an unknown email
 // takes the same time as a wrong password (prevents account enumeration by timing).
@@ -203,16 +205,21 @@ exports.verifyEmail = asyncHandler(async (req, res) => {
       verificationStatus: 'pending',
       verificationSubmittedAt: new Date(),
       emailVerifiedAt: new Date(),
+      autoVerification: AUTO_VERIFY ? { state: 'queued' } : undefined,
     });
   } catch (err) {
     await deleteIdCard(pending.idCardImageUrl);
     throw err;
   }
 
+  enqueueAutoVerification(user._id); // does nothing unless AUTO_VERIFY is on
+
   setAuthCookie(res, signToken(user._id, 'student'));
   res.status(201).json({
     success: true,
-    message: 'Email verified. Your ID card is now waiting for admin review.',
+    message: AUTO_VERIFY
+      ? 'Email verified. We are checking your ID card now - this usually takes about a minute.'
+      : 'Email verified. Your ID card is now waiting for admin review.',
     data: { user },
   });
 });
@@ -279,10 +286,10 @@ exports.login = asyncHandler(async (req, res) => {
     throw new AppError('Invalid email or password.', 401, { code: 'INVALID_CREDENTIALS' });
   }
 
+  if (!admin) await refreshSuspension(account); // a temporary block that has ended is lifted now
   if (account.status !== 'active') {
-    throw new AppError(`Your account has been ${account.status}. Please contact the admin.`, 403, {
-      code: `ACCOUNT_${account.status.toUpperCase()}`,
-    });
+    const { message, code } = blockedProblem(account);
+    throw new AppError(message, 403, { code });
   }
 
   // Pending and rejected students may log in - they need to see their verification

@@ -2,7 +2,7 @@
   "name": "wereuse",
   "version": "1.0.0",
   "private": true,
-  "description": "WeReUse - registration, login, authentication and student verification (MERN)",
+  "description": "WeReUse - authentication, profiles, notifications, categories, messages, ratings and complaints (MERN)",
   "scripts": {
     "install:all": "npm --prefix server install && npm --prefix client install",
     "seed:admin": "npm --prefix server run seed:admin",

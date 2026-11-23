@@ -4,6 +4,7 @@ const { verifyToken } = require('../utils/token');
 const { COOKIE_NAME } = require('../config/env');
 const User = require('../models/User');
 const Admin = require('../models/Admin');
+const { refreshSuspension, blockedProblem } = require('../utils/moderation');
 
 // The token says which collection the account lives in.
 const MODEL_BY_TYPE = { student: User, admin: Admin };
@@ -38,10 +39,10 @@ const protect = asyncHandler(async (req, res, next) => {
   const account = await Model.findById(payload.id);
   if (!account) throw new AppError('Your session is no longer valid. Please log in again.', 401, { code: 'NOT_AUTHENTICATED' });
 
+  if (payload.type === 'student') await refreshSuspension(account); // a temporary block that has ended
   if (account.status !== 'active') {
-    throw new AppError(`Your account has been ${account.status}. Please contact the admin.`, 403, {
-      code: `ACCOUNT_${account.status.toUpperCase()}`,
-    });
+    const { message, code } = blockedProblem(account);
+    throw new AppError(message, 403, { code });
   }
 
   // Changing the password logs out every older session (the token's issue time must not be older)
@@ -63,7 +64,7 @@ const requireRole =
     return next();
   };
 
-/** Blocks students who are not verified yet. Use on listing / chat routes in the next modules. */
+/** Blocks students who are not verified yet. Used on the listing, chat and rating routes. */
 const requireVerified = (req, res, next) => {
   if (req.user.role === 'admin' || req.user.verificationStatus === 'verified') return next();
   return next(

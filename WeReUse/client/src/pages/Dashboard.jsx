@@ -103,7 +103,7 @@ export default function Dashboard() {
           ))}
         </ul>
         <p className="px-6 pb-5 pt-2 text-sm text-ink-faint">
-          The server already enforces this rule. These screens arrive in the next modules.
+          The server enforces this rule: posting, chat and ratings open once your ID card is approved.
         </p>
       </section>
 
@@ -148,9 +148,35 @@ function IdPreview({ user }) {
 }
 
 function PendingPanel({ user, refreshing, onCheck }) {
+  // When automatic checking is on, the card is read by the server first; an admin only looks at it if that is not sure.
+  const auto = user.autoVerification || {};
+  const checking = auto.state === 'queued' || auto.state === 'processing';
+  const adminLooking = auto.decision === 'review' || auto.state === 'failed';
+
+  const copy = checking
+    ? {
+        title: 'We are checking your ID card',
+        text: 'We compare the name and registration number on your card with the details you entered. This usually takes about a minute, and this page updates by itself.',
+        step: 'Automatic check',
+        note: 'Reading your ID card now',
+      }
+    : adminLooking
+      ? {
+          title: 'An admin is taking a quick look',
+          text: 'Our automatic check could not be sure about your ID card, so an admin will compare it with the name and registration number you entered. This page updates by itself when a decision is made.',
+          step: 'Admin review',
+          note: 'Your ID card is in the queue',
+        }
+      : {
+          title: 'Your ID card is waiting for review',
+          text: 'An admin compares it with the name and registration number you entered. This page updates by itself when a decision is made.',
+          step: 'Admin review',
+          note: 'Your ID card is in the queue',
+        };
+
   const steps = [
     { label: 'ID card submitted', note: formatDateTime(user.verificationSubmittedAt), state: 'done' },
-    { label: 'Admin review', note: 'Your ID card is in the queue', state: 'current' },
+    { label: copy.step, note: copy.note, state: 'current' },
     { label: 'Full access', note: 'Unlocks as soon as you are approved', state: 'todo' },
   ];
 
@@ -159,12 +185,9 @@ function PendingPanel({ user, refreshing, onCheck }) {
       <section className="rounded-xl border border-line bg-white p-6" aria-labelledby="pending-title">
         <StatusBadge status="pending" />
         <h2 id="pending-title" className="mt-3 text-2xl font-bold">
-          Your ID card is waiting for review
+          {copy.title}
         </h2>
-        <p className="mt-2 max-w-prose text-ink-soft">
-          An admin compares it with the name and registration number you entered. This page updates by itself when a
-          decision is made.
-        </p>
+        <p className="mt-2 max-w-prose text-ink-soft">{copy.text}</p>
 
         <ol className="mt-6 space-y-5">
           {steps.map((step, i) => (
@@ -217,9 +240,17 @@ function VerifiedPanel({ user }) {
         Your ID card was approved{user.reviewedAt ? ` on ${formatDate(user.reviewedAt)}` : ''}. Your pass now carries the
         verified badge that other students will see.
       </p>
-      <Link to="/profile" className="btn btn-secondary mt-4">
-        Edit my profile
-      </Link>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Link to="/listings/new" className="btn btn-primary">
+          Post an item
+        </Link>
+        <Link to="/listings" className="btn btn-secondary">
+          Browse items
+        </Link>
+        <Link to="/profile" className="btn btn-secondary">
+          Edit my profile
+        </Link>
+      </div>
     </section>
   );
 }

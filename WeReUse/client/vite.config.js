@@ -12,9 +12,13 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       // The browser talks to /api on the SAME origin as the React app, and Vite forwards it
       // to Express. That keeps the httpOnly login cookie simple and avoids CORS problems.
-      proxy: { '/api': { target: apiTarget, changeOrigin: true } },
+      // /socket.io carries the real-time chat (WebSocket), so it needs ws: true
+      proxy: { '/api': { target: apiTarget, changeOrigin: true }, '/socket.io': { target: apiTarget, changeOrigin: true, ws: true } },
     },
-    preview: { port: 5173, proxy: { '/api': { target: apiTarget, changeOrigin: true } } },
+    preview: {
+      port: 5173,
+      proxy: { '/api': { target: apiTarget, changeOrigin: true }, '/socket.io': { target: apiTarget, changeOrigin: true, ws: true } },
+    },
     test: {
       environment: 'jsdom',
       globals: true,

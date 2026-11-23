@@ -7,9 +7,14 @@ router.get('/health', (req, res) => {
 
 router.use('/auth', require('./authRoutes'));
 router.use('/categories', require('./categoryRoutes'));
+router.use('/listings', require('./listingRoutes'));
+router.use('/conversations', require('./chatRoutes'));
 router.use('/verification', require('./verificationRoutes'));
 router.use('/profile', require('./profileRoutes'));
 router.use('/admin', require('./adminRoutes'));
 router.use('/notifications', require('./notificationRoutes'));
+router.use('/ratings', require('./ratingRoutes'));
+router.use('/complaints', require('./complaintRoutes'));
+router.use('/users', require('./userRoutes'));
 
 module.exports = router;

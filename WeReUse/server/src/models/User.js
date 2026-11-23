@@ -47,9 +47,29 @@ const userSchema = new Schema(
     reviewedAt: { type: Date, default: null },
     reviewedBy: { type: Schema.Types.ObjectId, ref: 'Admin', default: null }, // the admin who decided
 
+    // The automatic ID-card check (see utils/autoVerify). All empty when the feature is off.
+    autoVerification: {
+      state: { type: String, enum: ['queued', 'processing', 'done', 'failed'], default: null },
+      decision: { type: String, enum: ['approved', 'rejected', 'review'], default: null },
+      attempts: { type: Number, default: 0 }, // automatic checks done so far
+      summary: { type: String, default: '', maxlength: 300 }, // one line for the admin
+      processedAt: { type: Date, default: null },
+      checks: {
+        readable: { type: Boolean, default: null },
+        regNumber: { type: String, default: null }, // exact | near | none
+        nameScore: { type: Number, default: null }, // 0..1
+        university: { type: Boolean, default: null },
+      },
+    },
+
     // ---- Account ----
-    rating: { type: Number, default: 0, min: 0, max: 5 },
+    rating: { type: Number, default: 0, min: 0, max: 5 }, // average of the ratings other students gave (see models/Rating)
+    ratingCount: { type: Number, default: 0, min: 0 },
+
+    // suspended = blocked by an admin until suspendedUntil (lifted automatically), banned = removed for good
     status: { type: String, enum: ['active', 'suspended', 'banned'], default: 'active' },
+    suspendedUntil: { type: Date, default: null },
+    moderationReason: { type: String, trim: true, maxlength: 300, default: '' }, // shown to the student when they try to log in
     lastLoginAt: { type: Date, default: null },
 
     // A pending e-mail change: the new address only becomes the login e-mail after its code is confirmed
@@ -60,6 +80,8 @@ const userSchema = new Schema(
       attempts: { type: Number, default: 0 },
       sentAt: { type: Date, default: null },
     },
+    // Profile photo (file name in server/storage/avatars). Shown as the account's avatar; null = initials.
+    avatar: { type: String, default: null },
     emailVerifiedAt: { type: Date, default: null }, // null for accounts created before e-mail verification existed
     passwordChangedAt: { type: Date, default: null }, // logins issued before this moment stop working
   },

@@ -55,3 +55,26 @@ exports.passwordChangeLimiter = make(
   'Too many failed attempts. Please wait 15 minutes and try again.',
   { skipSuccessfulRequests: true }
 );
+
+// Posting products: stops one account flooding the marketplace with listings and uploads
+exports.listingCreateLimiter = make(
+  60 * 60 * 1000,
+  30,
+  'You are posting too quickly. Please try again in a little while.'
+);
+
+// Chat. Limited per logged-in student (not per network address), so a whole campus on one Wi-Fi is not affected.
+const perStudent = (req) => (req.user ? String(req.user._id) : req.ip);
+
+// Sending messages and offers
+exports.messageLimiter = make(60 * 1000, 40, 'You are sending messages too quickly. Please wait a moment.', { keyGenerator: perStudent });
+
+// Opening chats with many different sellers (stops mass-messaging)
+exports.startChatLimiter = make(60 * 60 * 1000, 40, 'You have opened many chats recently. Please try again in a little while.', { keyGenerator: perStudent });
+
+// The complaint box: enough for real problems, not for flooding the admins
+exports.complaintLimiter = make(24 * 60 * 60 * 1000, 10, 'You have sent many complaints today. Please wait for the admins to respond.', { keyGenerator: perStudent });
+
+// Reporting other students, and rating from profiles
+exports.reportLimiter = make(24 * 60 * 60 * 1000, 20, 'You have sent many reports today. Please wait for the admins to review them.', { keyGenerator: perStudent });
+exports.ratingLimiter = make(60 * 60 * 1000, 60, 'You are rating too quickly. Please try again in a little while.', { keyGenerator: perStudent });

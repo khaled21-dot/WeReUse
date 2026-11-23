@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
+import { useRealtimeEvent } from '../context/RealtimeContext';
+import { useAuth } from '../context/AuthContext';
 import { notificationApi } from '../api';
 import { timeAgo } from '../utils/format';
 
@@ -18,6 +21,9 @@ export default function NotificationBell({ refreshKey }) {
       /* the bell is not critical - ignore temporary errors */
     }
   }, []);
+
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Load now, then every 30 seconds, and again whenever refreshKey changes
   useEffect(() => {
@@ -45,6 +51,24 @@ export default function NotificationBell({ refreshKey }) {
       setUnread(0);
     } catch {
       /* ignore */
+    }
+  };
+
+  // The server says something new happened (a message, an offer, ...): reload right away
+  useRealtimeEvent('notification:new', load);
+
+  // A chat notification opens that conversation
+  const openNotification = (n) => {
+    markOne(n);
+    if ((n.type === 'message' || n.type === 'offer') && n.relatedId) {
+      setOpen(false);
+      navigate(`/messages/${n.relatedId}`);
+    } else if (n.type === 'rating' && user) {
+      setOpen(false);
+      navigate(`/users/${user.id}`);
+    } else if (n.type === 'complaint_update' || n.type === 'report_update') {
+      setOpen(false);
+      navigate('/support');
     }
   };
 
@@ -95,7 +119,7 @@ export default function NotificationBell({ refreshKey }) {
                 <li key={n.id}>
                   <button
                     type="button"
-                    onClick={() => markOne(n)}
+                    onClick={() => openNotification(n)}
                     className={`flex w-full gap-3 px-4 py-3 text-left hover:bg-paper ${n.isRead ? '' : 'bg-blue-50/60'}`}
                   >
                     <span

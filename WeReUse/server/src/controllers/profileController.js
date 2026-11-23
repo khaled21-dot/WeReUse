@@ -12,6 +12,8 @@ const asyncHandler = require('../utils/asyncHandler');
 const { signToken, setAuthCookie } = require('../utils/token');
 const { sendVerificationEmail } = require('../utils/mailer');
 const { emailInUse } = require('../utils/accountLookup');
+const { AVATAR_DIR, saveAvatar, deleteAvatar } = require('../utils/fileStore');
+const { detectImageType } = require('../utils/imageType');
 const {
   CODE_TTL_MINUTES,
   MAX_ATTEMPTS,
@@ -239,3 +241,70 @@ exports.cancelEmailChange = asyncHandler(async (req, res) => {
   const user = await Model.findById(req.user._id);
   res.json({ success: true, message: 'Email change cancelled.', data: { user } });
 });
+
+
+// ---------- profile photo (every logged-in account: students, verified or not, and admins) ----------
+const AVATAR_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png)$/;
+
+/** POST /api/profile/avatar   multipart, field "avatar" (JPG or PNG) - add or replace the profile photo */
+exports.uploadAvatar = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    const message = 'Choose a photo to upload.';
+    throw new AppError(message, 400, { code: 'NO_FILE', errors: { avatar: message } });
+  }
+  // trust the bytes, not the file name or the Content-Type the browser sent
+  const ext = detectImageType(req.file.buffer);
+  if (!ext) {
+    const message = 'This file is not a valid JPG or PNG image.';
+    throw new AppError(message, 400, { code: 'INVALID_FILE_TYPE', errors: { avatar: message } });
+  }
+
+  const Model = modelFor(req.user);
+  const filename = await saveAvatar(req.file.buffer, ext);
+  const previous = req.user.avatar;
+  try {
+    await Model.updateOne({ _id: req.user._id }, { $set: { avatar: filename } });
+  } catch (err) {
+    await deleteAvatar(filename);
+    throw err;
+  }
+  if (previous && previous !== filename) await deleteAvatar(previous);
+
+  const user = await Model.findById(req.user._id);
+  res.json({ success: true, message: 'Profile photo updated.', data: { user } });
+});
+
+/** DELETE /api/profile/avatar - back to the initials */
+exports.removeAvatar = asyncHandler(async (req, res) => {
+  const Model = modelFor(req.user);
+  const previous = req.user.avatar;
+  await Model.updateOne({ _id: req.user._id }, { $set: { avatar: null } });
+  if (previous) await deleteAvatar(previous);
+  const user = await Model.findById(req.user._id);
+  res.json({ success: true, message: 'Profile photo removed.', data: { user } });
+});
+
+/** GET /api/profile/avatars/:filename - any logged-in user may see profile photos (chat, listings) */
+exports.sendAvatar = (req, res, next) => {
+  const { filename } = req.params;
+  if (!AVATAR_NAME.test(filename)) return next(new AppError('Photo not found.', 404));
+  return res.sendFile(
+    filename,
+    {
+      root: AVATAR_DIR,
+      cacheControl: false,
+      etag: false,
+      lastModified: false,
+      headers: {
+        'Content-Type': filename.endsWith('.png') ? 'image/png' : 'image/jpeg',
+        // a new photo always gets a new random name, so the old one may be cached
+        'Cache-Control': 'private, max-age=86400',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Disposition': 'inline',
+      },
+    },
+    (err) => {
+      if (err && !res.headersSent) next(new AppError('Photo not found.', 404));
+    }
+  );
+};

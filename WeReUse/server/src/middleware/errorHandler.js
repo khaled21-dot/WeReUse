@@ -27,13 +27,21 @@ const errorHandler = (err, req, res, next) => {
   let errors = err.fieldErrors;
 
   if (err instanceof multer.MulterError) {
+    const forListing = String(req.originalUrl || '').includes('/listings');
+    const field = forListing ? 'images' : 'idCard';
     status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
     code = err.code;
     if (err.code === 'LIMIT_FILE_SIZE') {
-      message = `The image is too large. Maximum size is ${MAX_UPLOAD_MB} MB.`;
-      errors = { idCard: message };
+      message = `${forListing ? 'A photo is' : 'The image is'} too large. Maximum size is ${MAX_UPLOAD_MB} MB.`;
+      errors = { [field]: message };
+    } else if (err.code === 'LIMIT_FILE_COUNT') {
+      message = 'You can add up to 5 photos.';
+      errors = { [field]: message };
     } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-      message = 'Unexpected file field. Upload the ID card as "idCard".';
+      message = forListing
+        ? 'Unexpected file field. Upload photos as "images" (5 at most).'
+        : 'Unexpected file field. Upload the ID card as "idCard".';
+      errors = { [field]: message };
     } else {
       message = 'The upload could not be processed. Please try again.';
     }
